@@ -1,0 +1,191 @@
+\documentclass[12pt]{article}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{listings}
+
+% ---------------- Listings setup ----------------
+\definecolor{codebg}{rgb}{0.97,0.97,0.97}
+\lstset{
+  language=Python,
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{codebg},
+  frame=single,
+  framerule=0.4pt,
+  numbers=left,
+  numberstyle=\tiny,
+  stepnumber=1,
+  tabsize=4,
+  breaklines=true,
+  showstringspaces=false,
+  keywordstyle=\color{blue!70!black},
+  stringstyle=\color{red!60!black},
+  commentstyle=\color{green!40!black}
+}
+
+\title{Linear Regression From Scratch: Mathematics and Implementation}
+\author{(Your Name)}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Feature Matrix (Stick to Notes)}
+We define the feature matrix $X\in\mathbb{R}^{m\times n}$ as
+\[
+X=
+\begin{bmatrix}
+x_{11} & x_{12} & \dots & x_{1n}\\
+x_{21} & x_{22} & \dots & x_{2n}\\
+\vdots & \vdots & \ddots & \vdots\\
+x_{m1} & x_{m2} & \dots & x_{mn}
+\end{bmatrix},
+\qquad
+\vec x^{(i)}=(x_{i1},x_{i2},\dots,x_{in}).
+\]
+Each row of $X$ is a feature vector $\vec x^{(i)}$.
+
+\section{Prediction Rule}
+For a sample $\vec x^{(i)}$, the prediction is
+\[
+\hat y^{(i)}=f(\vec x^{(i)})=\vec w\cdot\vec x^{(i)}+b,
+\]
+so vectorized:
+\[
+\hat{\vec y}=X\vec w + b\,\mathbf 1.
+\]
+
+\section{Error Vector}
+For each sample,
+\[
+e^{(i)}=\hat y^{(i)}-y^{(i)},
+\]
+and the stacked error vector is
+\[
+\vec e=
+\begin{bmatrix}
+\hat y^{(1)}-y^{(1)}\\
+\hat y^{(2)}-y^{(2)}\\
+\vdots\\
+\hat y^{(m)}-y^{(m)}
+\end{bmatrix}
+\in\mathbb{R}^m.
+\]
+
+\section{Gradient of the Multivariable Cost}
+We use the mean squared error with the $\tfrac12$ convention:
+\[
+J(\vec w,b)=\frac{1}{2m}\sum_{i=1}^m\!\big(\hat y^{(i)}-y^{(i)}\big)^2
+=\frac{1}{2m}\|\vec e\|_2^2.
+\]
+Its gradients are
+\[
+\nabla_{\vec w}J=\frac{1}{m}X^\top\vec e,
+\qquad
+\frac{\partial J}{\partial b}=\frac{1}{m}\sum_{i=1}^m e^{(i)}.
+\]
+
+\section{Parameter Updates (Stick to Notes)}
+With learning rate $\alpha$:
+\[
+\vec w \leftarrow \vec w - \alpha\,\nabla_{\vec w}J
+=\vec w-\alpha\cdot\frac{1}{m}X^\top\vec e,
+\qquad
+b \leftarrow b - \alpha\,\frac{\partial J}{\partial b}
+=b-\frac{\alpha}{m}\sum_{i=1}^m e^{(i)}.
+\]
+
+\section{Normalization (z-Score)}
+Before regression we normalize each feature using training statistics:
+\[
+x'^{(i)}_j=\frac{x^{(i)}_j-\mu_j}{\sigma_j},
+\quad
+\mu_j=\frac{1}{m}\sum_{i=1}^m x^{(i)}_j,
+\quad
+\sigma_j=\sqrt{\frac{1}{m}\sum_{i=1}^m (x^{(i)}_j-\mu_j)^2},
+\]
+and if $\sigma_j=0$ we set $\sigma_j\leftarrow 1$.
+
+\section{Dataset Split (Stick to Notes)}
+We split the dataset as:
+\[
+\text{Train: }80\%,\quad \text{Validation: }10\%,\quad \text{Test: }10\%.
+\]
+
+% ===================== CODE SNIPPETS =====================
+
+\section{Implementation Snippets (Exact Code)}
+\subsection*{Loading Data and Building $X,\vec y$}
+\begin{lstlisting}
+import numpy as np
+import pandas as pd
+
+df = pd.read_csv("housing.csv", delim_whitespace=True, header=None)
+X = df.iloc[:, :-1].to_numpy(dtype=float)
+y = df.iloc[:, -1].to_numpy(dtype=float)
+\end{lstlisting}
+
+\subsection*{z-Score Normalization (with zero-std guard)}
+\begin{lstlisting}
+m, n = X.shape
+mu = X.mean(axis=0)
+sigma = X.std(axis=0, ddof=0)
+sigma[sigma == 0] = 1.0
+X = (X - mu) / sigma
+\end{lstlisting}
+
+\subsection*{Parameters and Prediction Function}
+\begin{lstlisting}
+w = np.zeros(n, dtype=float)
+b = 0.0
+
+def f(X, w, b):
+    # Vectorized: \hat{y} = X w + b 1
+    return X @ w + b
+\end{lstlisting}
+
+\subsection*{Gradient Step (Implements \(X^\top e\) and bias average)}
+\begin{lstlisting}
+def step(X, y, w, b, alpha):
+    m = len(y)
+    e = f(X, w, b) - y            # e = \hat{y} - y
+    grad_w = (X.T @ e) / m        # \nabla_w J = (1/m) X^T e
+    grad_b = e.mean()             # dJ/db = (1/m) sum e_i
+    return w - alpha * grad_w, b - alpha * grad_b
+\end{lstlisting}
+
+\subsection*{Cost Function \(J(\vec w,b)=\tfrac{1}{2m}\|e\|^2\)}
+\begin{lstlisting}
+def cost(X, y, w, b):
+    e = f(X, w, b) - y
+    return 0.5 * np.mean(e ** 2)
+\end{lstlisting}
+
+\subsection*{Batch Gradient Descent with Tolerance}
+\begin{lstlisting}
+alpha = 0.05
+max_epochs = 5000
+tol = 1e-8
+prev_J = None
+
+for epoch in range(1, max_epochs + 1):
+    w, b = step(X, y, w, b, alpha)
+    J = cost(X, y, w, b)
+    if prev_J is not None and abs(prev_J - J) < tol:
+        break
+    prev_J = J
+\end{lstlisting}
+
+\subsection*{Predictions and Metrics}
+\begin{lstlisting}
+y_pred = f(X, w, b)
+mse = np.mean((y - y_pred) ** 2)
+
+print(f"final_cost J(w,b): {J:.6f}")
+print(f"MSE: {mse:.6f}")
+print("bias b:", round(b, 6))
+print("weights w:", np.round(w, 6))
+\end{lstlisting}
+
+\end{document}
