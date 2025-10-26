@@ -1,0 +1,10 @@
+.venv/
+.DS_Store
+*.csv
+*.pkl
+*.npy
+*.h5
+task phase 1/housing.csv
+task phase 1/train.csv
+task phase 2/kmeans/pokedex.csv
+task phase 2/onlinefraud.csv 
