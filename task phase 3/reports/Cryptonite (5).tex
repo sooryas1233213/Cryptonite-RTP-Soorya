@@ -1,0 +1,187 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{margin=1in}
+
+\title{Backpropagation and Gradient-Based Optimization in Multi-Layer Perceptrons}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+
+Multi-Layer Perceptrons (MLPs) are one of the most fundamental architectures in neural networks. Despite their apparent simplicity, their training relies on a carefully structured mathematical framework involving calculus, linear algebra, and numerical optimization. At the core of this framework lie \textit{backpropagation} and \textit{gradient-based optimization}, which together enable the network to learn from data.
+
+This report presents a detailed and mathematically grounded discussion of backpropagation, gradient descent and its variants, loss functions, activation functions, and common training pathologies such as vanishing and exploding gradients.
+
+\section{Structure of a Multi-Layer Perceptron}
+
+An MLP consists of a sequence of layers indexed by $l = 1, 2, \dots, L$. Each layer performs an affine transformation followed by a nonlinear activation:
+\[
+\mathbf{z}^{(l)} = \mathbf{W}^{(l)} \mathbf{a}^{(l-1)} + \mathbf{b}^{(l)}, \quad
+\mathbf{a}^{(l)} = \sigma^{(l)}(\mathbf{z}^{(l)})
+\]
+where:
+\begin{itemize}
+    \item $\mathbf{W}^{(l)}$ is the weight matrix,
+    \item $\mathbf{b}^{(l)}$ is the bias vector,
+    \item $\mathbf{a}^{(l)}$ is the activation output,
+    \item $\sigma^{(l)}$ is the activation function.
+\end{itemize}
+
+The input layer is defined as $\mathbf{a}^{(0)} = \mathbf{x}$, and the final layer produces the network output $\hat{\mathbf{y}} = \mathbf{a}^{(L)}$.
+
+\section{Loss Functions}
+
+The loss function quantifies the discrepancy between the predicted output $\hat{\mathbf{y}}$ and the true target $\mathbf{y}$. Common choices include:
+
+\subsection{Mean Squared Error (MSE)}
+\[
+\mathcal{L}_{\text{MSE}} = \frac{1}{n} \sum_{i=1}^{n} \|\hat{\mathbf{y}}_i - \mathbf{y}_i\|^2
+\]
+Primarily used in regression tasks.
+
+\subsection{Cross-Entropy Loss}
+For classification with softmax outputs:
+\[
+\mathcal{L}_{\text{CE}} = -\sum_{k} y_k \log(\hat{y}_k)
+\]
+This loss arises naturally from maximum likelihood estimation under a categorical distribution.
+
+\section{Backpropagation}
+
+Backpropagation is an efficient application of the chain rule to compute gradients of the loss with respect to all parameters.
+
+\subsection{Error Signal}
+
+Define the error at layer $l$ as:
+\[
+\boldsymbol{\delta}^{(l)} = \frac{\partial \mathcal{L}}{\partial \mathbf{z}^{(l)}}
+\]
+
+For the output layer:
+\[
+\boldsymbol{\delta}^{(L)} = \nabla_{\mathbf{a}^{(L)}} \mathcal{L} \odot \sigma'(\mathbf{z}^{(L)})
+\]
+
+For hidden layers:
+\[
+\boldsymbol{\delta}^{(l)} =
+\left(\mathbf{W}^{(l+1)}\right)^T \boldsymbol{\delta}^{(l+1)} \odot \sigma'(\mathbf{z}^{(l)})
+\]
+
+\subsection{Gradients of Parameters}
+
+Once $\boldsymbol{\delta}^{(l)}$ is known:
+\[
+\frac{\partial \mathcal{L}}{\partial \mathbf{W}^{(l)}} = \boldsymbol{\delta}^{(l)} \left(\mathbf{a}^{(l-1)}\right)^T,
+\quad
+\frac{\partial \mathcal{L}}{\partial \mathbf{b}^{(l)}} = \boldsymbol{\delta}^{(l)}
+\]
+
+This backward pass has computational complexity linear in the number of parameters.
+
+\section{Gradient Descent}
+
+Gradient descent updates parameters by moving in the direction of steepest descent:
+\[
+\theta_{t+1} = \theta_t - \eta \nabla_\theta \mathcal{L}
+\]
+where $\eta$ is the learning rate.
+
+\subsection{Variants}
+\begin{itemize}
+    \item \textbf{Batch Gradient Descent}: Uses the full dataset.
+    \item \textbf{Stochastic Gradient Descent (SGD)}: Uses a single sample.
+    \item \textbf{Mini-batch Gradient Descent}: Compromise between the two.
+\end{itemize}
+
+\section{Adaptive Optimization Algorithms}
+
+\subsection{RMSProp}
+
+RMSProp normalizes gradients using an exponentially weighted average:
+\[
+v_t = \rho v_{t-1} + (1-\rho) g_t^2
+\]
+\[
+\theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{v_t + \epsilon}} g_t
+\]
+
+\subsection{Adam}
+
+Adam combines momentum and RMSProp:
+\[
+m_t = \beta_1 m_{t-1} + (1-\beta_1) g_t
+\]
+\[
+v_t = \beta_2 v_{t-1} + (1-\beta_2) g_t^2
+\]
+
+Bias-corrected estimates:
+\[
+\hat{m}_t = \frac{m_t}{1-\beta_1^t}, \quad
+\hat{v}_t = \frac{v_t}{1-\beta_2^t}
+\]
+
+Update rule:
+\[
+\theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{\hat{v}_t} + \epsilon} \hat{m}_t
+\]
+
+\section{Activation Functions}
+
+\subsection{Sigmoid}
+\[
+\sigma(x) = \frac{1}{1 + e^{-x}}
+\]
+Prone to vanishing gradients.
+
+\subsection{Tanh}
+Zero-centered but still saturates.
+
+\subsection{ReLU}
+\[
+\text{ReLU}(x) = \max(0, x)
+\]
+Efficient and widely used, but can suffer from dead neurons.
+
+\subsection{Variants}
+Leaky ReLU, ELU, and GELU aim to mitigate ReLU's shortcomings.
+
+\section{Vanishing and Exploding Gradients}
+
+Repeated multiplication of Jacobians during backpropagation can lead to:
+\begin{itemize}
+    \item \textbf{Vanishing gradients}: Gradients approach zero, slowing learning.
+    \item \textbf{Exploding gradients}: Gradients grow uncontrollably, causing instability.
+\end{itemize}
+
+\subsection{Mitigation Strategies}
+\begin{itemize}
+    \item Proper weight initialization (Xavier, He)
+    \item Non-saturating activations
+    \item Gradient clipping
+    \item Batch normalization
+\end{itemize}
+
+\section{Learning Rate Considerations}
+
+The learning rate controls convergence behavior:
+\begin{itemize}
+    \item Too small: Slow convergence
+    \item Too large: Divergence or oscillation
+\end{itemize}
+
+Learning rate schedules and adaptive optimizers are commonly employed to balance stability and speed.
+
+\section{Conclusion}
+
+Backpropagation and gradient-based optimization form the mathematical backbone of training MLPs. While the core ideas are conceptually simple, practical training requires careful consideration of optimization algorithms, activation functions, and numerical stability issues. Understanding these mechanisms at a mathematical level is essential for designing reliable and efficient neural networks.
+
+\end{document}
+
