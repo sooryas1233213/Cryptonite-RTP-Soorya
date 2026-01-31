@@ -5,7 +5,10 @@ venv/
 *.pkl
 *.npy
 *.h5
-task phase 1/housing.csv
-task phase 1/train.csv
-task phase 2/kmeans/pokedex.csv
-task phase 2/onlinefraud.csv 
+task phase 2/onlinefraud.csv
+
+# allow small datasets used by notebooks
+!task phase 1/housing.csv
+!task phase 1/train.csv
+!task phase 2/kmeans/pokedex.csv
+!task phase 5/manipal_atmospherics_df.csv
